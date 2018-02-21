@@ -9,7 +9,7 @@ SimplePhysics is a Unity 2018.1 demo showcasing a custom physics system which ha
 * It's open source- do what you want with it MIT licensed
 
 ## How do I run it?
-Once you have cloned the repository, simply open `Scenes/SampleScene.unity`. There's a fairly basic little set up here, a floor, one wall to bounce off and of course, our physics system (its attached to the Physics Spawner game object). The floor and wall just has regular Unity colliders attached, nothing special there. The spawner only has 3 public properties, Mesh, Material and Spawn direction.
+This demo showcases new feature added in Unity 2018.1, and has been tested with  2018.1b6. [Any release after that should be fine](https://unity3d.com/unity/beta-download). Once you have cloned the repository, simply open `Scenes/SampleScene.unity`. There's a fairly basic little set up here, a floor, one wall to bounce off and of course, our physics system (its attached to the Physics Spawner game object). The floor and wall just has regular Unity colliders attached, nothing special there. The spawner only has 3 public properties, Mesh, Material and Spawn direction.
 * Mesh and Material set the assets you want to render the physics objects with. Defaults to a pinkish cube.
 * Spawn Direction defaults to the walls transform. The initial velocity for physics object will be angled towards this transform, spraying out in a satisfying arch.
 
