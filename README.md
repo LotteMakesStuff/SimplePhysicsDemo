@@ -1,5 +1,5 @@
 # SimplePhysics Demo    <a href='https://ko-fi.com/A08215TT' target='_blank'><img height='46' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a> <a href='https://www.patreon.com/bePatron?u=7061709' target='_blank'><img height='46' style='border:0px;height:46px;' src='https://c5.patreon.com/external/logo/become_a_patron_button@2x.png' border='0' alt='Become a Patron!' /></a>
-SimplePhysics is a Unity 2018.1 demo showcasing a custom physics system which does all of its processing via the new Unity Jobs system.
+SimplePhysics is a Unity 2018.1 demo showcasing a custom physics system which has all of its processing via the new Unity Jobs system.
 ![demo gif - boxes flying everywhere!](/Docs/phys.gif)
 * Its a simplified, bare-bones version of the same concepts behind [LotteMakesStuff's HyperPhysics engine](https://twitter.com/LotteMakesStuff/status/964612077708070912).
 * It uses the new Unity 2018.1 Job system to run the physics simulation across all your CPUs cores at once.
