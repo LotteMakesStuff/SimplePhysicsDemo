@@ -42,7 +42,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
                 Velocities[i] = new Vector3(0, 0, 0);
             }
 
-            // simply intergrate gravity based on time since last step.
+            // simply integrate gravity based on time since last step.
             Velocities[i] += Gravity * DeltaTime;
         }
     }
@@ -72,16 +72,14 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         }
     }
 
-    // Intergrate the velocity into all the objects positions. We use the
-    // Raycast hit data to decide how much of the velocity to intergrate -
+    // Integrate the velocity into all the objects positions. We use the
+    // Raycast hit data to decide how much of the velocity to integrate -
     // we dont want to tunnel though the colliders in the scene!
-    struct IntergratePhysics : IJobParallelFor
+    struct IntegratePhysics : IJobParallelFor
     {
         public float DeltaTime;
         [ReadOnly]
         public NativeArray<Vector3> Velocities;
-        [ReadOnly]
-        public NativeArray<RaycastCommand> Raycasts;
         [ReadOnly]
         public NativeArray<RaycastHit> Hits;
         public NativeArray<int> Sleeping;
@@ -89,7 +87,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
 
         public void Execute(int i)
         {
-            if (Sleeping[i] > 0) // if the object is sleeping, we dont have to intergrate anything
+            if (Sleeping[i] > 0) // if the object is sleeping, we dont have to integrate anything
             {
                 Sleeping[i]++;
                 return;
@@ -97,10 +95,12 @@ public class SimpleJobifiedPhysics : MonoBehaviour
 
             if (Hits[i].normal == Vector3.zero)
             {
+                // if there has been no colision, intergrate all of the velocity we want for this frame
                 Positions[i] += Velocities[i] * (Velocities[i] * DeltaTime).magnitude;
             }
             else
             {
+                // there has been a collision! just move up to the point of the collion with a tiny offset for stability
                 Positions[i] = Hits[i].point + new Vector3(0, 0.1f, 0);
             }
         }
@@ -210,7 +210,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             Sleeping = sleeping
         };
         var gravityDependency = gravityJob.Schedule(objectCount, 32);
-
+        
         // TODO accumilate other forces here! gravity is just the simplest force to apply to our objects,
         // but theres no limit on the kind of forces we can simulate. We could add friction, air resistnace,
         // constant acceleration, joints and constrainsts, boyancy.. anything we can think of that can effect
@@ -233,21 +233,20 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             Velocities = velocities
         };
 
-        var setupDependancy = setupRaycastsJob.Schedule(objectCount, 32, gravityDependency);
-        var raycastDependancy = RaycastCommand.ScheduleBatch(raycastCommands, raycastHits, 32, setupDependancy);
+        var setupDependency = setupRaycastsJob.Schedule(objectCount, 32, gravityDependency );
+        var raycastDependency  = RaycastCommand.ScheduleBatch(raycastCommands, raycastHits, 32, setupDependency );
 
-        // Now we know if there is a collision along our velocity vector, its time to intergrate the velocity into
+        // Now we know if there is a collision along our velocity vector, its time to integrate the velocity into
         // our objects for the current timeset.
-        var intergrateJob = new IntergratePhysics()
+        var integrateJob = new IntegratePhysics()
         {
             DeltaTime = deltaTime,
             Positions = positions,
             Velocities = velocities,
-            Raycasts = raycastCommands,
             Sleeping = sleeping,
             Hits = raycastHits
         };
-        var intergrateDependancy = intergrateJob.Schedule(objectCount, 32, raycastDependancy);
+        var integrateDependency  = integrateJob.Schedule(objectCount, 32, raycastDependency );
 
         // finally, respond to any collisions that happened in the lsat update step.
         var collisionResponeJob = new CalculateCollisionResponse()
@@ -256,7 +255,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             Velocities = velocities,
             Sleeping = sleeping
         };
-        var collisionDependacy = collisionResponeJob.Schedule(objectCount, 32, intergrateDependancy);
+        var collisionDependency  = collisionResponeJob.Schedule(objectCount, 32, integrateDependency );
 
         // Now the physics is done, we need to create a drawing matrix for every object. This simple demo dosnt
         // implment roation, so only the translation values in the matrix reallllly matter.
@@ -265,27 +264,44 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             positions = positions,
             renderMatices = renderMatices
         };
-        var matrixJob = renderMatrixJob.Schedule(objectCount, 32, collisionDependacy);
+        var matrixJob = renderMatrixJob.Schedule(objectCount, 32, collisionDependency );
 
+        // All the jobs we want to execute have been scheduled! By calling .Complete() on the last job in the
+        // chain, Unity makes the main thread help out with scheduled jobs untill they are all complete. 
+        // then we can move on and use the data caluclated in the jobs safely, without worry about data being changed
+        // by other threads as we try to use it - we *know* all the work is done
         matrixJob.Complete();
 
         // make sure we dispose of the temporary NativeArrays we used for raycasting
         raycastCommands.Dispose();
         raycastHits.Dispose();
 
-        // DEBUG - draw red lines showing object velocity
+        // Well, all the updating is done! lets actually issue a draw!
+        Graphics.DrawMeshInstanced(mesh, 0, material, renderMatices.ToArray());
+        
+        // DEBUG 1 - draw red lines showing object velocity
         //for (int i = 0; i < objectCount; i++)
         //{
         ///   Debug.DrawLine(positions[i], positions[i] + velocities[i], Color.red, 0.016f, true);
         //}
 
-        // Well, all the updating is done! lets actually issue a draw!
-        Graphics.DrawMeshInstanced(mesh, 0, material, renderMatices.ToArray());
+        // DEBUG 2 - draw a trail for a few objects, really helps to visualize the bounce!
+        //var duration = 01f;
+        //Debug.DrawLine(positions[0], positions[0] + velocities[0], Color.red, duration, true);
+        //Debug.DrawLine(positions[200], positions[200] + velocities[200], Color.cyan, duration, true);
+        //Debug.DrawLine(positions[400], positions[400] + velocities[400], Color.green, duration, true);
+        //Debug.DrawLine(positions[600], positions[600] + velocities[600], Color.magenta, duration, true);
+        //Debug.DrawLine(positions[800], positions[800] + velocities[800], Color.yellow, duration, true);
+        //Debug.DrawLine(positions[1000], positions[1000] + velocities[1000], Color.blue, duration, true);
+        //Debug.DrawLine(positions[100], positions[100] + velocities[100], Color.red, duration, true);
+        //Debug.DrawLine(positions[300], positions[300] + velocities[300], Color.cyan, duration, true);
+        //Debug.DrawLine(positions[500], positions[500] + velocities[500], Color.green, duration, true);
+        //Debug.DrawLine(positions[700], positions[700] + velocities[700], Color.magenta, duration, true);
+        //Debug.DrawLine(positions[900], positions[900] + velocities[900], Color.yellow, duration, true);
     
         // finally lets respawn any object that has been asleep and stable for a while
         // TODO as of Unity 2018.1b6, NativeArray is the only native collection type. When
         // NativeQueue is included in the beta this last task can be jobified!
-
         for (int i = 0; i < objectCount; i++)
         {
             if (sleeping[i] > 15)
