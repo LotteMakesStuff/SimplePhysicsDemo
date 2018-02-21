@@ -22,7 +22,7 @@ Unlike unity game objects and rigidbodies, our physics objects aren't represente
 Position | Velocity | Sleeping | RenderingMatrix
 ------------ | -------------|------------ | -------------
 Vector3 | Vector3 | int | Matrix4x4
-The position of the obect after the previous update | The direction and speed the object is moving in | <ul><li>Counts how long the object has been asleep for.</li><li>Sleeping == 0, the object is moving.</li><li>Sleeping >= 0 the objet is stable an at rest on the ground. Counter gets incremented every frame the object sleeps for.</li></ul>  | We need this to draw the object with Graphics.DrawMeshInstanced(...)
+The position of the obect after the previous update | The direction and speed the object is moving in | <ul><li>Sleeping == 0, the object is moving.</li><li>Sleeping >= 0 the objet is stable an at rest on the ground. Counter gets incremented every frame the object sleeps for.</li></ul>  | We need this to draw the object with Graphics.DrawMeshInstanced(...)
 
 Okay, there are 5 steps in running this physics engine! All of these steps are implemented as an [IJobParallelFor](https://docs.unity3d.com/2018.1/Documentation/ScriptReference/Unity.Jobs.IJobParallelFor.html) job. These jobs split the work up into batches and run it on all free CPU cores in the system - allowing us to process a lot of stuff very fast.
 
