@@ -12,7 +12,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
     // .net genrics (like List<T>) and plain arrays (like T[]) wil not work in jobs! 
     private NativeArray<Vector3> velocities;
     private NativeArray<Vector3> positions;
-    private NativeArray<Matrix4x4> renderMatices;
+    private NativeArray<Matrix4x4> renderMatrices;
     private NativeArray<int> sleeping;
     private Vector3 gravity;
     private int objectCount = 1023; // the most we can fit into a single call to Graphics.DrawInstance
@@ -51,7 +51,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
     // collision detection against the world. these can be sent to PhysX
     // as a batch that will be executed in a job, rather than us having to
     // call Physics.Raycast in a loop just on the main thread!
-    struct PrepairRaycastCommands : IJobParallelFor
+    struct PrepareRaycastCommands : IJobParallelFor
     {
         public float DeltaTime;
 
@@ -154,11 +154,11 @@ public class SimpleJobifiedPhysics : MonoBehaviour
     {
         [ReadOnly]
         public NativeArray<Vector3> positions;
-        public NativeArray<Matrix4x4> renderMatices;
+        public NativeArray<Matrix4x4> renderMatrices;
 
         public void Execute(int i)
         {
-            renderMatices[i] = Matrix4x4.TRS(positions[i], Quaternion.identity, new Vector3(0.5f, 0.5f, 0.5f));
+            renderMatrices[i] = Matrix4x4.TRS(positions[i], Quaternion.identity, new Vector3(0.5f, 0.5f, 0.5f));
         }
     }
 
@@ -174,7 +174,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         velocities = new NativeArray<Vector3>(objectCount, Allocator.Persistent);
         positions = new NativeArray<Vector3>(objectCount, Allocator.Persistent);
         sleeping = new NativeArray<int>(objectCount, Allocator.Persistent);
-        renderMatices = new NativeArray<Matrix4x4>(objectCount, Allocator.Persistent);
+        renderMatrices = new NativeArray<Matrix4x4>(objectCount, Allocator.Persistent);
 
         for (int i = 0; i < objectCount; i++)
         {
@@ -188,7 +188,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         velocities[i] = (Random.onUnitSphere + (((spawnDirection.position - transform.position).normalized).normalized)*1.3f).normalized * Random.Range(2f, 10f); // spawn with velocities arching towards a target object
         positions[i] = transform.position;
         sleeping[i] = 0;
-        renderMatices[i] = Matrix4x4.identity;
+        renderMatrices[i] = Matrix4x4.identity;
     }
 
     void Update()
@@ -223,9 +223,9 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         var raycastCommands = new NativeArray<RaycastCommand>(objectCount, Allocator.TempJob);
         var raycastHits = new NativeArray<RaycastHit>(objectCount, Allocator.TempJob);
 
-        // Lets schedule jobs to do a collision raycast for each object. One job prepairs all the raycast commands,
+        // Lets schedule jobs to do a collision raycast for each object. One job Prepares all the raycast commands,
         // the second actually does the raycasts.
-        var setupRaycastsJob = new PrepairRaycastCommands()
+        var setupRaycastsJob = new PrepareRaycastCommands()
         {
             DeltaTime = deltaTime,
             Positions = positions,
@@ -262,7 +262,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         var renderMatrixJob = new CalculateDrawMatricies()
         {
             positions = positions,
-            renderMatices = renderMatices
+            renderMatrices = renderMatrices
         };
         var matrixJob = renderMatrixJob.Schedule(objectCount, 32, collisionDependency );
 
@@ -277,7 +277,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         raycastHits.Dispose();
 
         // Well, all the updating is done! lets actually issue a draw!
-        Graphics.DrawMeshInstanced(mesh, 0, material, renderMatices.ToArray());
+        Graphics.DrawMeshInstanced(mesh, 0, material, renderMatrices.ToArray());
         
         // DEBUG 1 - draw red lines showing object velocity
         //for (int i = 0; i < objectCount; i++)
@@ -313,7 +313,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
     {
         velocities.Dispose();
         positions.Dispose();
-        renderMatices.Dispose();
+        renderMatrices.Dispose();
         sleeping.Dispose();
     }
 }
