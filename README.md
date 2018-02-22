@@ -1,5 +1,5 @@
 # SimplePhysics Demo    <a href='https://ko-fi.com/A08215TT' target='_blank'><img height='46' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a> <a href='https://www.patreon.com/bePatron?u=7061709' target='_blank'><img height='46' style='border:0px;height:46px;' src='https://c5.patreon.com/external/logo/become_a_patron_button@2x.png' border='0' alt='Become a Patron!' /></a>
-SimplePhysics is a Unity 2018.1 demo showcasing a custom physics system which does all of its processing via the new Unity Jobs system.
+SimplePhysics is a Unity 2018.1 demo showcasing a custom physics system which has all of its processing via the new Unity Jobs system.
 ![demo gif - boxes flying everywhere!](/Docs/phys.gif)
 * Its a simplified, bare-bones version of the same concepts behind [LotteMakesStuff's HyperPhysics engine](https://twitter.com/LotteMakesStuff/status/964612077708070912).
 * It uses the new Unity 2018.1 Job system to run the physics simulation across all your CPUs cores at once.
@@ -9,7 +9,7 @@ SimplePhysics is a Unity 2018.1 demo showcasing a custom physics system which do
 * It's open source- do what you want with it MIT licensed
 
 ## How do I run it?
-Once you have cloned the repository, simply open `Scenes/SampleScene.unity`. There's a fairly basic little set up here, a floor, one wall to bounce off and of course, our physics system (its attached to the Physics Spawner game object). The floor and wall just has regular Unity colliders attached, nothing special there. The spawner only has 3 public properties, Mesh, Material and Spawn direction.
+This demo showcases new feature added in Unity 2018.1, and has been tested with  2018.1b6. [Any release after that should be fine](https://unity3d.com/unity/beta-download). Once you have cloned the repository, simply open `Scenes/SampleScene.unity`. There's a fairly basic little set up here, a floor, one wall to bounce off and of course, our physics system (its attached to the Physics Spawner game object). The floor and wall just has regular Unity colliders attached, nothing special there. The spawner only has 3 public properties, Mesh, Material and Spawn direction.
 * Mesh and Material set the assets you want to render the physics objects with. Defaults to a pinkish cube.
 * Spawn Direction defaults to the walls transform. The initial velocity for physics object will be angled towards this transform, spraying out in a satisfying arch.
 
