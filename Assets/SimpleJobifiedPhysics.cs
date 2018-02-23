@@ -223,7 +223,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         var raycastCommands = new NativeArray<RaycastCommand>(objectCount, Allocator.TempJob);
         var raycastHits = new NativeArray<RaycastHit>(objectCount, Allocator.TempJob);
 
-        // Lets schedule jobs to do a collision raycast for each object. One job Prepares all the raycast commands,
+        // Lets schedule jobs to do a collision raycast for each object. One job Prepare    s all the raycast commands,
         // the second actually does the raycasts.
         var setupRaycastsJob = new PrepareRaycastCommands()
         {
@@ -234,6 +234,13 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         };
 
         var setupDependency = setupRaycastsJob.Schedule(objectCount, 32, gravityDependency );
+        
+        // BUG| WORKAROUND - Checked against Unity 2018.1b8
+        // BUG| RaycastCommand seems to be ignoring any passed in dependencies. We have to explicity wait here.
+        // BUG| This has been reported to Unity and fixed. When the fix appears in public betas this can be removed.    
+        setupDependency.Complete();
+        // BUG| END WORKAROUND
+        
         var raycastDependency  = RaycastCommand.ScheduleBatch(raycastCommands, raycastHits, 32, setupDependency );
 
         // Now we know if there is a collision along our velocity vector, its time to integrate the velocity into
