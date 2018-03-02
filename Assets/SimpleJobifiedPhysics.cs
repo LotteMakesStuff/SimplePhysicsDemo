@@ -40,6 +40,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             if (Sleeping[i] > 0)
             {
                 Velocities[i] = new Vector3(0, 0, 0);
+                return;
             }
 
             // simply integrate gravity based on time since last step.
