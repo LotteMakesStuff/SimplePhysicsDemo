@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 public class SimpleJobifiedPhysics : MonoBehaviour
 {
@@ -163,11 +164,15 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         }
     }
 
+    CustomSampler sampler;
     IEnumerator Start()
     {
         // lets wait for half a second before we set off the system -- just to avoid any stutters
         yield return new WaitForSeconds(0.5f);
 
+        // create a sampler so we can mesure performance
+        sampler = CustomSampler.Create("SimplePhysics");
+        
         // lets define an rough approximation for gravity
         gravity = new Vector3(0, -9f, 0);
 
@@ -198,6 +203,8 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         if (!positions.IsCreated)
             return;
 
+        sampler.Begin();
+        
         var deltaTime = Time.deltaTime;
 
         // FORCE ACCUMILATION
@@ -309,6 +316,8 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             if (sleeping[i] > 15)
                 Respawn(i);
         }
+        
+        sampler.End();
     }
 
     private void OnDisable()
