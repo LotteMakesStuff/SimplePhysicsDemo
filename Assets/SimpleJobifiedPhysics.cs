@@ -14,7 +14,8 @@ public class SimpleJobifiedPhysics : MonoBehaviour
     private NativeArray<Vector3> velocities;
     private NativeArray<Vector3> positions;
     private NativeArray<Matrix4x4> renderMatrices;
-    private NativeArray<int> sleeping;
+    private NativeArray<int> sleepingTimer;
+    private NativeQueue<int> asleep;
     private Vector3 gravity;
     private int objectCount = 1023; // the most we can fit into a single call to Graphics.DrawInstance
 
@@ -164,6 +165,21 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         }
     }
 
+    struct FindSleepingObjects : IJobParallelFor
+    {
+        public NativeQueue<int>.Concurrent SleepQueue;
+        [ReadOnly]
+        public NativeArray<int> Sleeping;
+            
+        public void Execute(int index)
+        {
+            if (Sleeping[index] > 15)
+            {
+                SleepQueue.Enqueue(index);
+            }
+        }
+    }
+
     CustomSampler sampler;
     IEnumerator Start()
     {
@@ -179,8 +195,9 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         // and set up all our NativeArrays with initial values
         velocities = new NativeArray<Vector3>(objectCount, Allocator.Persistent);
         positions = new NativeArray<Vector3>(objectCount, Allocator.Persistent);
-        sleeping = new NativeArray<int>(objectCount, Allocator.Persistent);
+        sleepingTimer = new NativeArray<int>(objectCount, Allocator.Persistent);
         renderMatrices = new NativeArray<Matrix4x4>(objectCount, Allocator.Persistent);
+        asleep = new NativeQueue<int>(Allocator.Persistent);
 
         for (int i = 0; i < objectCount; i++)
         {
@@ -190,10 +207,12 @@ public class SimpleJobifiedPhysics : MonoBehaviour
 
     private void Respawn(int i)
     {
-    //velocities[i] = Random.onUnitSphere * Random.Range(2, 10); // spawn objects with velocities spreading them out in a sphere
+        // Random cannot be used from jobs so this always has to execute on the main thread.
+        
+        //velocities[i] = Random.onUnitSphere * Random.Range(2, 10); // spawn objects with velocities spreading them out in a sphere
         velocities[i] = (Random.onUnitSphere + (((spawnDirection.position - transform.position).normalized).normalized)*1.3f).normalized * Random.Range(2f, 10f); // spawn with velocities arching towards a target object
         positions[i] = transform.position;
-        sleeping[i] = 0;
+        sleepingTimer[i] = 0;
         renderMatrices[i] = Matrix4x4.identity;
     }
 
@@ -215,7 +234,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             DeltaTime = deltaTime,
             Gravity = gravity,
             Velocities = velocities,
-            Sleeping = sleeping
+            Sleeping = sleepingTimer
         };
         var gravityDependency = gravityJob.Schedule(objectCount, 32);
         
@@ -252,7 +271,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             DeltaTime = deltaTime,
             Positions = positions,
             Velocities = velocities,
-            Sleeping = sleeping,
+            Sleeping = sleepingTimer,
             Hits = raycastHits
         };
         var integrateDependency  = integrateJob.Schedule(objectCount, 32, raycastDependency );
@@ -262,7 +281,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         {
             Hits = raycastHits,
             Velocities = velocities,
-            Sleeping = sleeping
+            Sleeping = sleepingTimer
         };
         var collisionDependency  = collisionResponeJob.Schedule(objectCount, 32, integrateDependency );
 
@@ -273,19 +292,28 @@ public class SimpleJobifiedPhysics : MonoBehaviour
             positions = positions,
             renderMatrices = renderMatrices
         };
-        var matrixJob = renderMatrixJob.Schedule(objectCount, 32, collisionDependency );
+        var matrixDependency = renderMatrixJob.Schedule(objectCount, 32, collisionDependency );
 
         // All the jobs we want to execute have been scheduled! By calling .Complete() on the last job in the
         // chain, Unity makes the main thread help out with scheduled jobs untill they are all complete. 
         // then we can move on and use the data caluclated in the jobs safely, without worry about data being changed
         // by other threads as we try to use it - we *know* all the work is done
-        matrixJob.Complete();
+        matrixDependency.Complete();
 
         // make sure we dispose of the temporary NativeArrays we used for raycasting
         raycastCommands.Dispose();
         raycastHits.Dispose();
+        
+        // lets schedule a job to figure out which objects are sleeping - this can run in the background whilst
+        // we dispach the drawing commands for this frame.
+        var sleepJob = new FindSleepingObjects()
+        {
+            Sleeping = sleepingTimer,
+            SleepQueue = asleep
+        };
+        var sleepDependancy = sleepJob.Schedule(objectCount, 32, matrixDependency);
 
-        // Well, all the updating is done! lets actually issue a draw!
+        //  lets actually issue a draw!
         Graphics.DrawMeshInstanced(mesh, 0, material, renderMatrices.ToArray());
         
         // DEBUG 1 - draw red lines showing object velocity
@@ -308,14 +336,16 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         //Debug.DrawLine(positions[700], positions[700] + velocities[700], Color.magenta, duration, true);
         //Debug.DrawLine(positions[900], positions[900] + velocities[900], Color.yellow, duration, true);
     
-        // finally lets respawn any object that has been asleep and stable for a while
-        // TODO as of Unity 2018.1b6, NativeArray is the only native collection type. When
-        // NativeQueue is included in the beta this last task can be jobified!
-        for (int i = 0; i < objectCount; i++)
+        // finally lets respawn any object that has been found to be asleep (ie not moved for 15 frames)
+        // were going to respawn that object so there is a constant flow
+        sleepDependancy.Complete();
+        for (int i = asleep.Count; i != 0; i--)
         {
-            if (sleeping[i] > 15)
-                Respawn(i);
+            int index = asleep.Dequeue();
+            Respawn(index);
         }
+        
+        
         
         sampler.End();
     }
@@ -325,6 +355,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         velocities.Dispose();
         positions.Dispose();
         renderMatrices.Dispose();
-        sleeping.Dispose();
+        sleepingTimer.Dispose();
+        asleep.Dispose();
     }
 }
