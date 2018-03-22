@@ -14,6 +14,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
     private NativeArray<Vector3> velocities;
     private NativeArray<Vector3> positions;
     private NativeArray<Matrix4x4> renderMatrices;
+    private Matrix4x4[] renderMatrixArray;
     private NativeArray<int> sleepingTimer;
     private NativeQueue<int> asleep;
     private Vector3 gravity;
@@ -197,6 +198,7 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         positions = new NativeArray<Vector3>(objectCount, Allocator.Persistent);
         sleepingTimer = new NativeArray<int>(objectCount, Allocator.Persistent);
         renderMatrices = new NativeArray<Matrix4x4>(objectCount, Allocator.Persistent);
+        renderMatrixArray = new Matrix4x4[objectCount];
         asleep = new NativeQueue<int>(Allocator.Persistent);
 
         for (int i = 0; i < objectCount; i++)
@@ -314,7 +316,8 @@ public class SimpleJobifiedPhysics : MonoBehaviour
         var sleepDependancy = sleepJob.Schedule(objectCount, 32, matrixDependency);
 
         //  lets actually issue a draw!
-        Graphics.DrawMeshInstanced(mesh, 0, material, renderMatrices.ToArray());
+        renderMatrices.CopyTo(renderMatrixArray); // copy to a preallocated array, we would get garbage from ToArray()
+        Graphics.DrawMeshInstanced(mesh, 0, material, renderMatrixArray);
         
         // DEBUG 1 - draw red lines showing object velocity
         //for (int i = 0; i < objectCount; i++)
