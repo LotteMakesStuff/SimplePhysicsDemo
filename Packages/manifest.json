@@ -4,6 +4,6 @@
     "com.unity.purchasing": "exclude",
     "com.unity.ads": "exclude",
     "com.unity.analytics": "exclude",
-    "com.unity.package-manager-ui": "1.8.0"
+    "com.unity.package-manager-ui": "1.8.2"
   }
 }
