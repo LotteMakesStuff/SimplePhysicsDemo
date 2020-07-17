@@ -1,4 +1,9 @@
 # SimplePhysics Demo    <a href='https://ko-fi.com/A08215TT' target='_blank'><img height='46' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a> <a href='https://www.patreon.com/bePatron?u=7061709' target='_blank'><img height='46' style='border:0px;height:46px;' src='https://c5.patreon.com/external/logo/become_a_patron_button@2x.png' border='0' alt='Become a Patron!' /></a>
+![Maintenance](https://img.shields.io/maintenance/no/2018) [![GitHub license](https://img.shields.io/github/license/LotteMakesStuff/SimplePhysicsDemo)](https://github.com/LotteMakesStuff/SimplePhysicsDemo/blob/master/LICENSE)
+![Twitter Follow](https://img.shields.io/twitter/follow/LotteMakesStuff?label=follow&style=social) ![UnityVersion](https://img.shields.io/badge/made%20with%20unity-2018.1-orange?logo=unity)
+
+
+
 SimplePhysics is a Unity 2018.1 demo showcasing a custom physics system which has all of its processing via the new Unity Jobs system.
 ![demo gif - boxes flying everywhere!](/Docs/phys.gif)
 * Its a simplified, bare-bones version of the same concepts behind [LotteMakesStuff's HyperPhysics engine](https://twitter.com/LotteMakesStuff/status/964612077708070912).
